@@ -43,6 +43,11 @@ func weather(lat, lon string) ([]byte, error) {
 
 	return ioutil.ReadAll(resp.Body)
 }
+func getKalori(name string, portion float64, unit string) ([]byte, error) {
+	return []byte(
+		fmt.Sprintf(`%s = 100 %s
+	`, name, unit)), nil
+}
 
 func chat(messages []op.ChatCompletionMessage) (op.ChatCompletionResponse, error) {
 	client := op.NewClient(openAIAPIKEY)
@@ -77,6 +82,29 @@ func chat(messages []op.ChatCompletionMessage) (op.ChatCompletionResponse, error
 		}
 	}`))
 
+	getKaloriParams := json.RawMessage([]byte(`{
+		"type": "object",
+		"required": [
+			"nama",
+			"porsi",
+			"unit"
+		],
+		"properties": {
+			"nama": {
+				"type": "string",
+				"description": "The latitude"
+			},
+			"porsi": {
+				"type": "number",
+				"description": "The longitude"
+			},
+			"unit": {
+				"type": "string",
+				"description": "The longitude"
+			}
+		}
+	}`))
+
 	return client.CreateChatCompletion(
 		context.Background(),
 		op.ChatCompletionRequest{
@@ -92,6 +120,11 @@ func chat(messages []op.ChatCompletionMessage) (op.ChatCompletionResponse, error
 					Name:        "weather",
 					Description: "Get the current weather in a given location",
 					Parameters:  paramWeather,
+				},
+				{
+					Name:        "getKalori",
+					Description: "Untuk mendapatkan Kalori dari sebuah makanan",
+					Parameters:  getKaloriParams,
 				},
 			},
 		},
@@ -112,6 +145,8 @@ func invokeFunction(name, argsIn string) ([]byte, error) {
 		return geocode(args["location"].(string))
 	case "weather":
 		return weather(args["latitude"].(string), args["longitude"].(string))
+	case "getKalori":
+		return getKalori(args["nama"].(string), args["porsi"].(float64), args["unit"].(string))
 	}
 
 	return nil, nil
